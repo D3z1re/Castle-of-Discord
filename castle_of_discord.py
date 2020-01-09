@@ -10,6 +10,10 @@ clock = pygame.time.Clock()
 pygame.display.set_caption('Castle of Discord')
 pygame.display.set_icon(win)
 
+# Загрузка заднего фона
+bg = pygame.image.load('data/textures/bg.png')
+
+# Загрузка изображений
 LEFT_MOVE = [pygame.image.load('data/models/player/left_1.png'), pygame.image.load('data/models/player/left_2.png'),
              pygame.image.load('data/models/player/left_3.png'), pygame.image.load('data/models/player/left_4.png')]
 RIGHT_MOVE = [pygame.image.load('data/models/player/right_1.png'), pygame.image.load('data/models/player/right_2.png'),
@@ -77,6 +81,7 @@ ENTITY_IMAGE = {'food': pygame.image.load('data/textures/entity/food.png'),
 
 TILE_WIDTH = 32
 
+# Группы спрайтов
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 spikes_group = pygame.sprite.Group()
@@ -88,10 +93,12 @@ player_group = pygame.sprite.Group()
 player = None
 
 
+# Функция загрузки звука
 def load_snd(name):
     return pygame.mixer.Sound('data/sfx/' + name + '.wav')
 
 
+# Загрузка звуков
 SOUNDS = {'move': load_snd('move'), 'jump': load_snd('jump'),
           'hurt': load_snd('hurt'), 'smash': load_snd('smash'),
           'squish': load_snd('squish'), 'purchase': load_snd('purchase'),
@@ -100,6 +107,7 @@ SOUNDS = {'move': load_snd('move'), 'jump': load_snd('jump'),
           'skeleton_dead': load_snd('skeleton_dead'), 'coin': load_snd('coin')}
 
 
+# Функция загрузки уровня
 def load_level(filename):
     filename = "data/" + filename
     # читаем уровень, убирая символы перевода строки
@@ -108,12 +116,12 @@ def load_level(filename):
 
     # и подсчитываем максимальную длину
     max_width = max(map(len, level_map))
-    max_height = len(list(map(len, level_map)))
 
     # дополняем каждую строку пустыми клетками ('.')
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
 
+# Функция вычисления максимальной ширины и высоты уровня
 def max_width_height(filename):
     filename = "data/" + filename
     # читаем уровень, убирая символы перевода строки
@@ -126,6 +134,7 @@ def max_width_height(filename):
     return max_width, max_height
 
 
+# Функция генерации уровня
 def generate_level(level):
     new_player, x, y = None, None, None
     for y in range(len(level)):
@@ -176,6 +185,7 @@ def generate_level(level):
     return new_player, x, y
 
 
+# Функция отрисовки спрайтов
 def drawWindow():
     win.blit(bg, (0, 0))
     player.update()
@@ -191,11 +201,13 @@ def drawWindow():
     pygame.display.update()
 
 
+# Функция закрытия приложения
 def terminate():
     pygame.quit()
     sys.exit()
 
 
+# Начальный экран
 def start_screen():
     logo = pygame.image.load('data/textures/logo.png')
     press = pygame.image.load('data/textures/press.png')
@@ -220,6 +232,7 @@ def start_screen():
         clock.tick(5)
 
 
+# Экран завершения игры
 def end_screen():
     end = pygame.image.load('data/textures/end.png')
     press = pygame.image.load('data/textures/press_quit.png')
@@ -249,6 +262,7 @@ def camera_func(camera, target_rect):
     return pygame.Rect(l, t, w, h)
 
 
+# Камера
 class Camera:
     def __init__(self, camera_func, width, height):
         self.camera_func = camera_func
@@ -261,6 +275,7 @@ class Camera:
         self.state = self.camera_func(self.state, target.rect)
 
 
+# Персонаж
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(player_group, all_sprites)
@@ -292,6 +307,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.slashing = False
 
+    # Атака
     def attack(self):
         if self.attackCount + 1 >= 30:
             SOUNDS['dagger'].play()
@@ -328,6 +344,7 @@ class Player(pygame.sprite.Sprite):
             self.slashing_test()
             self.attackCount += 1
 
+    # Прыжок
     def jump(self):
         if self.jumpCount >= 0:
             self.speed = 12
@@ -354,6 +371,7 @@ class Player(pygame.sprite.Sprite):
                 self.speed = 7
                 self.jumpCount = 15
 
+    # Падение
     def fall(self):
         self.rect.y += self.jumpCount ** 2 // 6
         if pygame.sprite.spritecollideany(self, tiles_group):
@@ -368,6 +386,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.jumpCount -= 1
 
+    # Проверка на столкновение с уровнем
     def collide_test_bottom(self):
         self.rect.y += 1
         if not pygame.sprite.spritecollideany(self, tiles_group):
@@ -380,6 +399,7 @@ class Player(pygame.sprite.Sprite):
             self.health -= 1
         self.rect.y -= 1
 
+    # Передвижение
     def move(self):
         if not self.isJump and not self.isFalling:
             SOUNDS['move'].play()
@@ -409,6 +429,7 @@ class Player(pygame.sprite.Sprite):
                 player.rect.x -= player.speed
             self.animCount += 1
 
+    # Неуязвимость после получения урона
     def stun(self):
         self.attackCount = 0
         self.isAttack = False
@@ -427,6 +448,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.stunCount += 1
 
+    # Смерть
     def die(self):
         if self.dieCount >= 60:
             player_group.remove(self)
@@ -444,6 +466,7 @@ class Player(pygame.sprite.Sprite):
                 self.image = DEAD
             self.dieCount += 1
 
+    # Функция обновления
     def update(self):
         if self.rect.y >= HEIGHT:
             self.health = 0
@@ -480,6 +503,7 @@ class Player(pygame.sprite.Sprite):
                 self.collide_test_bottom()
 
 
+# Слизень
 class Slime(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(enemies_group, all_sprites)
@@ -499,6 +523,7 @@ class Slime(pygame.sprite.Sprite):
         self.health = 1
         self.dieCount = 0
 
+    # Столлкновения с персонажем
     def kick(self):
         if self.rect.x > player.rect.x and player.last_move == 'right' and player.slashing:
             self.health -= 1
@@ -516,6 +541,7 @@ class Slime(pygame.sprite.Sprite):
             player.stun()
             player.health -= 1
 
+    # Смерть
     def die(self):
         if self.dieCount >= 60:
             enemies_group.remove(self)
@@ -534,6 +560,7 @@ class Slime(pygame.sprite.Sprite):
                 self.image = SLIME_RIGHT[-1]
             self.dieCount += 1
 
+    # Передвижение
     def move(self):
         if self.left:
             self.rect.x -= self.speed
@@ -556,6 +583,7 @@ class Slime(pygame.sprite.Sprite):
                         self.left = True
                 self.rect.x -= 1
 
+    # Прыжок
     def jump(self):
         if self.jumpCount >= 0:
             self.rect.y -= self.jumpCount ** 2 // 16
@@ -573,6 +601,7 @@ class Slime(pygame.sprite.Sprite):
         else:
             self.collide_test_bottom()
 
+    # Падение
     def fall(self):
         self.rect.y += self.jumpCount ** 2 // 16
         self.move()
@@ -588,6 +617,7 @@ class Slime(pygame.sprite.Sprite):
         else:
             self.jumpCount -= 1
 
+    # Проверка на столкновение с уровнем
     def collide_test_bottom(self):
         self.rect.y += 1
         if not pygame.sprite.spritecollideany(self, tiles_group):
@@ -603,6 +633,7 @@ class Slime(pygame.sprite.Sprite):
             self.speed = 7
             self.jumpCount = 15
 
+    # Функция обновления
     def update(self):
         if self.rect.y >= HEIGHT:
             self.health = 0
@@ -628,6 +659,7 @@ class Slime(pygame.sprite.Sprite):
                 self.collide_test_bottom()
 
 
+# Летающий моб
 class Fly(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(enemies_group, all_sprites)
@@ -645,6 +677,7 @@ class Fly(pygame.sprite.Sprite):
         self.health = 1
         self.dieCount = 0
 
+    # Столлкновения с персонажем
     def kick(self):
         if self.rect.x > player.rect.x and player.last_move == 'right' and player.slashing:
             self.health -= 1
@@ -662,6 +695,7 @@ class Fly(pygame.sprite.Sprite):
             player.stun()
             player.health -= 1
 
+    # Смерть
     def die(self):
         if self.dieCount >= 60:
             enemies_group.remove(self)
@@ -680,6 +714,7 @@ class Fly(pygame.sprite.Sprite):
                 self.image = FLY_RIGHT[-1]
             self.dieCount += 1
 
+    # Передвижение
     def move(self):
         if self.left:
             self.rect.x -= self.speed
@@ -702,6 +737,7 @@ class Fly(pygame.sprite.Sprite):
                         self.left = True
                 self.rect.x -= 1
 
+    # Падение
     def fall(self):
         self.rect.y += self.jumpCount ** 2 // 24
         self.speed = 2
@@ -717,6 +753,7 @@ class Fly(pygame.sprite.Sprite):
         else:
             self.jumpCount -= 1
 
+    # Проверка на столкновение с уровнем
     def collide_test_bottom(self):
         self.rect.y += 1
         if not pygame.sprite.spritecollideany(self, tiles_group):
@@ -725,6 +762,7 @@ class Fly(pygame.sprite.Sprite):
         else:
             self.rect.y -= 1
 
+    # Проверка столкновения с уровнем по горизонтали
     def collide_test_x(self):
         if self.left:
             self.rect.x -= self.rect[2]
@@ -743,6 +781,7 @@ class Fly(pygame.sprite.Sprite):
             self.rect.x -= self.rect[2]
             self.rect.y -= 1
 
+    # Функция обновления
     def update(self):
         self.speed = 4
         self.collide_test_x()
@@ -766,6 +805,7 @@ class Fly(pygame.sprite.Sprite):
                 self.collide_test_bottom()
 
 
+# Скелет-воин
 class SkeletonWarrior(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(enemies_group, all_sprites)
@@ -791,6 +831,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
         self.isStunned = False
         self.stunCount = 0
 
+    # Передвижение
     def move(self):
         if self.animCount < 60:
             if self.left:
@@ -819,6 +860,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
         else:
             self.animCount = 0
 
+    # Неуязвимость после получения урона
     def stun(self):
         self.triggered = False
         self.attackCount = 0
@@ -842,6 +884,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
                 self.image = SKELETON_RIGHT[-1]
             self.stunCount += 1
 
+    # Столкновение с персонажем
     def kick(self):
         if self.rect.x > player.rect.x and not self.isStunned and not self.slashing and \
                 player.last_move == 'right' and player.slashing:
@@ -857,6 +900,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
             player.stun()
             player.health -= 1
 
+    # Смерть
     def die(self):
         if self.dieCount >= 60:
             enemies_group.remove(self)
@@ -881,6 +925,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
         else:
             self.slashing = False
 
+    # Атака
     def attack(self):
         if self.attackCount + 1 >= 60:
             self.isAttack = False
@@ -912,6 +957,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
             self.slashing_test()
             self.attackCount += 1
 
+    # Падение
     def fall(self):
         self.rect.y += self.jumpCount ** 2 // 6
         if pygame.sprite.spritecollideany(self, tiles_group):
@@ -925,6 +971,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
         else:
             self.jumpCount -= 1
 
+    # Проверка на столкновение с уровнем
     def collide_test_bottom(self):
         self.rect.y += 1
         if not pygame.sprite.spritecollideany(self, tiles_group):
@@ -932,6 +979,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
             self.isFalling = True
         self.rect.y -= 1
 
+    # Проверка на столкновение с уровнем по горизонтали
     def collide_test_x(self):
         if self.left:
             self.rect.x -= self.rect[2]
@@ -950,6 +998,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
             self.rect.x -= self.rect[2]
             self.rect.y -= 1
 
+    # Проверка на тирггер
     def trigger_test(self):
         if fabs(self.rect.x - player.rect.x) <= 70 and fabs(self.rect.y - player.rect.y) <= 50 and not player.isStunned:
             self.triggered = True
@@ -957,6 +1006,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
         else:
             self.triggered = False
 
+    # Функция обновления
     def update(self):
         self.trigger_test()
         if not self.triggered and not self.isAttack:
@@ -992,6 +1042,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
                 self.die()
 
 
+# Плитка
 class Tile(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, type):
         super().__init__(tiles_group, all_sprites)
@@ -1000,6 +1051,7 @@ class Tile(pygame.sprite.Sprite):
         boxes_group.add(self)
 
 
+# Шипы
 class Spikes(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(spikes_group, all_sprites)
@@ -1007,12 +1059,14 @@ class Spikes(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(TILE_WIDTH * pos_x, TILE_WIDTH * pos_y)
 
 
+# Еда
 class Food(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(entity_group, all_sprites)
         self.image = ENTITY_IMAGE['food']
         self.rect = self.image.get_rect().move(TILE_WIDTH * pos_x, TILE_WIDTH * pos_y)
 
+    # Повышает уровень здоровья на 1 единицу, если здоровье персонажа меньше 5 единиц
     def update(self):
         if pygame.sprite.spritecollideany(self, player_group) and player.health < 5:
             SOUNDS['squish'].play()
@@ -1021,12 +1075,14 @@ class Food(pygame.sprite.Sprite):
             all_sprites.remove(self)
 
 
+# Зелье
 class Potion(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y):
         super().__init__(entity_group, all_sprites)
         self.image = ENTITY_IMAGE['potion']
         self.rect = self.image.get_rect().move(TILE_WIDTH * pos_x, TILE_WIDTH * pos_y)
 
+    # Повышает уровень здоровья на 3 единицы
     def update(self):
         if pygame.sprite.spritecollideany(self, player_group):
             SOUNDS['purchase'].play()
@@ -1035,6 +1091,7 @@ class Potion(pygame.sprite.Sprite):
             all_sprites.remove(self)
 
 
+# Монета
 class Coin(pygame.sprite.Sprite):
     def __init__(self, pos_x, pos_y, filename):
         super().__init__(entity_group, all_sprites)
@@ -1042,6 +1099,7 @@ class Coin(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(TILE_WIDTH * pos_x, TILE_WIDTH * pos_y)
         self.filename = filename
 
+    # Переход на следующий уровень
     def update(self):
         if pygame.sprite.spritecollideany(self, player_group):
             SOUNDS['coin'].play()
@@ -1055,11 +1113,10 @@ class Coin(pygame.sprite.Sprite):
             player.health = 0
             player.dieCount = 60
 
-
-bg = pygame.image.load('data/textures/bg.png')
-
+# Вызыв начального экрана
 start_screen()
 
+# Генерпция уровня
 player, level_x, level_y = generate_level(load_level(FILE))
 
 max_width, max_height = max_width_height(FILE)
@@ -1067,15 +1124,19 @@ max_width, max_height = max_width_height(FILE)
 total_level_width = max_width * TILE_WIDTH
 total_level_height = max_height * TILE_WIDTH
 
+# Создание камеры
 camera = Camera(camera_func, total_level_width, total_level_height)
 
+# Загрузка и воспроизведение саундтрека
 pygame.mixer.music.load('data/music/main.wav')
 pygame.mixer.music.play(-1)
 pygame.mixer.music.set_volume(0.4)
 
+# Игровой цикл
 running = True
 while running:
     clock.tick(60)
+    # Если персонаж умер, очищаем все группы спрайтов и генерируем уровень заново
     if not player_group:
         for e in all_sprites:
             all_sprites.remove(e)
@@ -1123,5 +1184,7 @@ while running:
             SOUNDS['pre_dagger'].play()
             player.isAttack = True
     drawWindow()
+
+# Вызов экрана завершения игры
 end_screen()
 pygame.quit()
