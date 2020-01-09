@@ -8,10 +8,11 @@ FILE = 'level_1.txt'
 win = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 pygame.display.set_caption('Castle of Discord')
-pygame.display.set_icon(win)
+
 
 # Загрузка заднего фона
 bg = pygame.image.load('data/textures/bg.png')
+
 
 # Загрузка изображений
 LEFT_MOVE = [pygame.image.load('data/models/player/left_1.png'), pygame.image.load('data/models/player/left_2.png'),
@@ -33,7 +34,8 @@ ATTACK_RIGHT = [pygame.image.load('data/models/player/right_5.png'),
 STANDING = pygame.image.load('data/models/player/stand_1.png')
 DEAD = pygame.image.load('data/models/player/die.png')
 HEART_IMG = pygame.image.load('data/textures/heart.png')
-
+# Изменение иконки приложения
+pygame.display.set_icon(STANDING)
 SLIME_RIGHT = [pygame.image.load('data/models/slime/right_1.png'), pygame.image.load('data/models/slime/right_2.png'),
                pygame.image.load('data/models/slime/right_3.png'), pygame.image.load('data/models/slime/right_dead.png')]
 SLIME_LEFT = [pygame.image.load('data/models/slime/left_1.png'), pygame.image.load('data/models/slime/left_2.png'),
