@@ -1,11 +1,15 @@
 import pygame
+from pygame.locals import *
 from math import fabs
 import sys
 
 pygame.init()
 WIDTH, HEIGHT = 1280, 720
+TILE_WIDTH = 32
+FPS = 60
 FILE = 'level_1.txt'
-win = pygame.display.set_mode((WIDTH, HEIGHT))
+win = pygame.display.set_mode((WIDTH, HEIGHT), DOUBLEBUF)
+win.set_alpha(None)
 clock = pygame.time.Clock()
 pygame.display.set_caption('Castle of Discord')
 
@@ -81,13 +85,11 @@ ENTITY_IMAGE = {'food': pygame.image.load('data/textures/entity/food.png'),
                 'potion': pygame.image.load('data/textures/entity/potion.png'),
                 'coin': pygame.image.load('data/textures/entity/coin.png')}
 
-TILE_WIDTH = 32
 
 # Группы спрайтов
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
 spikes_group = pygame.sprite.Group()
-boxes_group = pygame.sprite.Group()
 enemies_group = pygame.sprite.Group()
 entity_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
@@ -180,6 +182,8 @@ def generate_level(level):
                     Coin(x, y, 'level_2.txt')
                 elif FILE == 'level_2.txt':
                     Coin(x, y, 'level_3.txt')
+                elif FILE == 'level_3.txt':
+                    Coin(x, y, 'level_4.txt')
                 else:
                     Coin(x, y, None)
 
@@ -348,6 +352,16 @@ class Player(pygame.sprite.Sprite):
 
     # Прыжок
     def jump(self):
+        if self.last_move == 'left':
+            if self.isStunned:
+                self.image = LEFT_STUNNED[1]
+            else:
+                self.image = LEFT_MOVE[1]
+        else:
+            if self.isStunned:
+                self.image = RIGHT_STUNNED[1]
+            else:
+                self.image = RIGHT_MOVE[1]
         if self.jumpCount >= 0:
             self.speed = 12
             self.rect.y -= self.jumpCount ** 2 // 6
@@ -375,6 +389,16 @@ class Player(pygame.sprite.Sprite):
 
     # Падение
     def fall(self):
+        if self.last_move == 'left':
+            if self.isStunned:
+                self.image = LEFT_STUNNED[3]
+            else:
+                self.image = LEFT_MOVE[3]
+        else:
+            if self.isStunned:
+                self.image = RIGHT_STUNNED[3]
+            else:
+                self.image = RIGHT_MOVE[3]
         self.rect.y += self.jumpCount ** 2 // 6
         if pygame.sprite.spritecollideany(self, tiles_group):
             self.rect.y -= self.jumpCount ** 2 // 6
@@ -470,7 +494,7 @@ class Player(pygame.sprite.Sprite):
 
     # Функция обновления
     def update(self):
-        if self.rect.y >= HEIGHT:
+        if self.rect.y >= total_level_height:
             self.health = 0
         if self.health <= 0:
             self.die()
@@ -637,7 +661,7 @@ class Slime(pygame.sprite.Sprite):
 
     # Функция обновления
     def update(self):
-        if self.rect.y >= HEIGHT:
+        if self.rect.y >= total_level_height:
             self.health = 0
         if pygame.sprite.spritecollideany(self, player_group):
             self.kick()
@@ -1050,7 +1074,6 @@ class Tile(pygame.sprite.Sprite):
         super().__init__(tiles_group, all_sprites)
         self.image = TILE_IMAGE[type]
         self.rect = self.image.get_rect().move(TILE_WIDTH * pos_x, TILE_WIDTH * pos_y)
-        boxes_group.add(self)
 
 
 # Шипы
@@ -1115,6 +1138,7 @@ class Coin(pygame.sprite.Sprite):
             player.health = 0
             player.dieCount = 60
 
+
 # Вызыв начального экрана
 start_screen()
 
@@ -1137,7 +1161,7 @@ pygame.mixer.music.set_volume(0.4)
 # Игровой цикл
 running = True
 while running:
-    clock.tick(60)
+    clock.tick(FPS)
     # Если персонаж умер, очищаем все группы спрайтов и генерируем уровень заново
     if not player_group:
         for e in all_sprites:
@@ -1146,8 +1170,6 @@ while running:
             tiles_group.remove(e)
         for e in spikes_group:
             spikes_group.remove(e)
-        for e in boxes_group:
-            boxes_group.remove(e)
         for e in enemies_group:
             enemies_group.remove(e)
         for e in entity_group:
