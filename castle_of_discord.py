@@ -7,16 +7,16 @@ pygame.init()
 WIDTH, HEIGHT = 1280, 720
 TILE_WIDTH = 32
 FPS = 60
+LEVELS = ['level_1.txt', 'level_2.txt', 'level_3.txt', 'level_4.txt']
 FILE = 'level_1.txt'
 win = pygame.display.set_mode((WIDTH, HEIGHT), DOUBLEBUF)
 win.set_alpha(None)
 clock = pygame.time.Clock()
 pygame.display.set_caption('Castle of Discord')
-
+pygame.mouse.set_visible(False)
 
 # Загрузка заднего фона
 bg = pygame.image.load('data/textures/bg.png')
-
 
 # Загрузка изображений
 LEFT_MOVE = [pygame.image.load('data/models/player/left_1.png'), pygame.image.load('data/models/player/left_2.png'),
@@ -41,7 +41,8 @@ HEART_IMG = pygame.image.load('data/textures/heart.png')
 # Изменение иконки приложения
 pygame.display.set_icon(STANDING)
 SLIME_RIGHT = [pygame.image.load('data/models/slime/right_1.png'), pygame.image.load('data/models/slime/right_2.png'),
-               pygame.image.load('data/models/slime/right_3.png'), pygame.image.load('data/models/slime/right_dead.png')]
+               pygame.image.load('data/models/slime/right_3.png'),
+               pygame.image.load('data/models/slime/right_dead.png')]
 SLIME_LEFT = [pygame.image.load('data/models/slime/left_1.png'), pygame.image.load('data/models/slime/left_2.png'),
               pygame.image.load('data/models/slime/left_3.png'), pygame.image.load('data/models/slime/left_dead.png')]
 
@@ -84,7 +85,6 @@ TILE_IMAGE = {'t': pygame.image.load('data/textures/tiles/bt.png'),
 ENTITY_IMAGE = {'food': pygame.image.load('data/textures/entity/food.png'),
                 'potion': pygame.image.load('data/textures/entity/potion.png'),
                 'coin': pygame.image.load('data/textures/entity/coin.png')}
-
 
 # Группы спрайтов
 all_sprites = pygame.sprite.Group()
@@ -178,12 +178,12 @@ def generate_level(level):
             elif level[y][x] == 'c':
                 Food(x, y)
             elif level[y][x] == 'n':
-                if FILE == 'level_1.txt':
-                    Coin(x, y, 'level_2.txt')
-                elif FILE == 'level_2.txt':
-                    Coin(x, y, 'level_3.txt')
-                elif FILE == 'level_3.txt':
-                    Coin(x, y, 'level_4.txt')
+                if FILE == LEVELS[0]:
+                    Coin(x, y, LEVELS[1])
+                elif FILE == LEVELS[1]:
+                    Coin(x, y, LEVELS[2])
+                elif FILE == LEVELS[2]:
+                    Coin(x, y, LEVELS[3])
                 else:
                     Coin(x, y, None)
 
@@ -291,7 +291,7 @@ class Player(pygame.sprite.Sprite):
 
         self.left = False
         self.right = True
-        self.last_move = None
+        self.last_move = 'right'
         self.speed = 8
 
         self.isAttack = False
@@ -301,6 +301,7 @@ class Player(pygame.sprite.Sprite):
         self.isJump = False
         self.isFalling = False
         self.jumpCount = 15
+        self.jumpMult = 6
 
         self.health = 5
         self.isStunned = False
@@ -327,46 +328,28 @@ class Player(pygame.sprite.Sprite):
             if self.attackCount // 15 == 1 and not self.isMoved:
                 self.rect.x -= 34
                 self.isMoved = not self.isMoved
-            self.image = ATTACK_LEFT[self.attackCount // 15]
-            self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
             self.slashing_test()
             self.attackCount += 1
         elif self.right:
-            self.image = ATTACK_RIGHT[self.attackCount // 15]
-            self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
             self.slashing_test()
             self.attackCount += 1
         elif self.last_move == 'left':
             if self.attackCount // 15 == 1 and not self.isMoved:
                 self.rect.x -= 34
                 self.isMoved = not self.isMoved
-            self.image = ATTACK_LEFT[self.attackCount // 15]
-            self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
             self.slashing_test()
             self.attackCount += 1
         elif self.last_move == 'right':
-            self.image = ATTACK_RIGHT[self.attackCount // 15]
-            self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
             self.slashing_test()
             self.attackCount += 1
 
     # Прыжок
     def jump(self):
-        if self.last_move == 'left':
-            if self.isStunned:
-                self.image = LEFT_STUNNED[1]
-            else:
-                self.image = LEFT_MOVE[1]
-        else:
-            if self.isStunned:
-                self.image = RIGHT_STUNNED[1]
-            else:
-                self.image = RIGHT_MOVE[1]
         if self.jumpCount >= 0:
             self.speed = 12
-            self.rect.y -= self.jumpCount ** 2 // 6
+            self.rect.y -= self.jumpCount ** 2 // self.jumpMult
             if pygame.sprite.spritecollideany(self, tiles_group):
-                self.rect.y += self.jumpCount ** 2 // 6
+                self.rect.y += self.jumpCount ** 2 // self.jumpMult
                 while not pygame.sprite.spritecollideany(self, tiles_group):
                     self.rect.y -= 1
                     if pygame.sprite.spritecollideany(self, tiles_group):
@@ -389,19 +372,9 @@ class Player(pygame.sprite.Sprite):
 
     # Падение
     def fall(self):
-        if self.last_move == 'left':
-            if self.isStunned:
-                self.image = LEFT_STUNNED[3]
-            else:
-                self.image = LEFT_MOVE[3]
-        else:
-            if self.isStunned:
-                self.image = RIGHT_STUNNED[3]
-            else:
-                self.image = RIGHT_MOVE[3]
-        self.rect.y += self.jumpCount ** 2 // 6
+        self.rect.y += self.jumpCount ** 2 // self.jumpMult
         if pygame.sprite.spritecollideany(self, tiles_group):
-            self.rect.y -= self.jumpCount ** 2 // 6
+            self.rect.y -= self.jumpCount ** 2 // self.jumpMult
             while not pygame.sprite.spritecollideany(self, tiles_group):
                 self.rect.y += 1
                 if pygame.sprite.spritecollideany(self, tiles_group):
@@ -412,19 +385,6 @@ class Player(pygame.sprite.Sprite):
         else:
             self.jumpCount -= 1
 
-    # Проверка на столкновение с уровнем
-    def collide_test_bottom(self):
-        self.rect.y += 1
-        if not pygame.sprite.spritecollideany(self, tiles_group):
-            self.isJump = False
-            self.jumpCount = 0
-            self.isFalling = True
-        elif pygame.sprite.spritecollideany(self, spikes_group) and not self.isStunned:
-            self.stun()
-            self.isFalling = False
-            self.health -= 1
-        self.rect.y -= 1
-
     # Передвижение
     def move(self):
         if not self.isJump and not self.isFalling:
@@ -433,23 +393,11 @@ class Player(pygame.sprite.Sprite):
         if self.animCount + 1 >= 60:
             self.animCount = 0
         elif self.left:
-            if self.isStunned:
-                self.image = LEFT_STUNNED[self.animCount // 15]
-                self.rect = RIGHT_MOVE[2].get_rect().move(self.rect.x, self.rect.y)
-            else:
-                self.image = LEFT_MOVE[self.animCount // 15]
-                self.rect = RIGHT_MOVE[2].get_rect().move(self.rect.x, self.rect.y)
             player.rect.x -= player.speed
             if pygame.sprite.spritecollideany(player, tiles_group):
                 player.rect.x += player.speed
             self.animCount += 1
         elif self.right:
-            if self.isStunned:
-                self.image = RIGHT_STUNNED[self.animCount // 15]
-                self.rect = RIGHT_MOVE[2].get_rect().move(self.rect.x, self.rect.y)
-            else:
-                self.image = RIGHT_MOVE[self.animCount // 15]
-                self.rect = RIGHT_MOVE[2].get_rect().move(self.rect.x, self.rect.y)
             player.rect.x += player.speed
             if pygame.sprite.spritecollideany(player, tiles_group):
                 player.rect.x -= player.speed
@@ -466,10 +414,6 @@ class Player(pygame.sprite.Sprite):
         elif self.stunCount == 0:
             SOUNDS['hurt'].play()
             self.isStunned = True
-            if self.left:
-                self.image = LEFT_STUNNED[0]
-            else:
-                self.image = RIGHT_STUNNED[0]
             self.stunCount += 1
         else:
             self.stunCount += 1
@@ -480,19 +424,24 @@ class Player(pygame.sprite.Sprite):
             player_group.remove(self)
             all_sprites.remove(self)
         elif self.dieCount == 0:
-            if self.left:
-                self.image = DEAD
-            else:
-                self.image = DEAD
             self.dieCount += 1
         else:
-            if self.left:
-                self.image = DEAD
-            else:
-                self.image = DEAD
             self.dieCount += 1
 
-    # Функция обновления
+    # Проверка на столкновение с уровнем
+    def collide_test_bottom(self):
+        self.rect.y += 1
+        if not pygame.sprite.spritecollideany(self, tiles_group):
+            self.isJump = False
+            self.jumpCount = 0
+            self.isFalling = True
+        elif pygame.sprite.spritecollideany(self, spikes_group) and not self.isStunned:
+            self.stun()
+            self.isFalling = False
+            self.health -= 1
+        self.rect.y -= 1
+
+    # Функция обновления положения
     def update(self):
         if self.rect.y >= total_level_height:
             self.health = 0
@@ -503,20 +452,6 @@ class Player(pygame.sprite.Sprite):
                 self.animCount = 0
             if self.left or self.right:
                 self.move()
-            elif self.last_move == 'left':
-                if self.isStunned:
-                    self.image = LEFT_STUNNED[0]
-                    self.rect = RIGHT_MOVE[2].get_rect().move(self.rect.x, self.rect.y)
-                else:
-                    self.image = LEFT_MOVE[0]
-                    self.rect = RIGHT_MOVE[2].get_rect().move(self.rect.x, self.rect.y)
-            elif self.last_move == 'right':
-                if self.isStunned:
-                    self.image = RIGHT_STUNNED[0]
-                    self.rect = RIGHT_MOVE[2].get_rect().move(self.rect.x, self.rect.y)
-                else:
-                    self.image = RIGHT_MOVE[0]
-                    self.rect = RIGHT_MOVE[2].get_rect().move(self.rect.x, self.rect.y)
             if self.isStunned:
                 self.stun()
             if self.isJump:
@@ -527,6 +462,72 @@ class Player(pygame.sprite.Sprite):
                 self.attack()
             if not self.isJump and not self.isFalling:
                 self.collide_test_bottom()
+        self.anim_update()
+
+    # Функция обновления анимации
+    def anim_update(self):
+        if self.dieCount:
+            if self.left:
+                self.image = DEAD
+            else:
+                self.image = DEAD
+        elif self.isAttack:
+            if self.last_move == 'left':
+                self.image = ATTACK_LEFT[self.attackCount // 15]
+                self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
+            else:
+                self.image = ATTACK_RIGHT[self.attackCount // 15]
+                self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
+        elif self.isJump:
+            if self.last_move == 'left':
+                if self.isStunned:
+                    self.image = LEFT_STUNNED[1]
+                else:
+                    self.image = LEFT_MOVE[1]
+            else:
+                if self.isStunned:
+                    self.image = RIGHT_STUNNED[1]
+                else:
+                    self.image = RIGHT_MOVE[1]
+        elif self.isFalling:
+            if self.last_move == 'left':
+                if self.isStunned:
+                    self.image = LEFT_STUNNED[3]
+                else:
+                    self.image = LEFT_MOVE[3]
+            else:
+                if self.isStunned:
+                    self.image = RIGHT_STUNNED[3]
+                else:
+                    self.image = RIGHT_MOVE[3]
+        elif self.left:
+            if self.isStunned:
+                self.image = LEFT_STUNNED[self.animCount // 15]
+                self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
+            else:
+                self.image = LEFT_MOVE[self.animCount // 15]
+                self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
+        elif self.right:
+            if self.isStunned:
+                self.image = RIGHT_STUNNED[self.animCount // 15]
+                self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
+            else:
+                self.image = RIGHT_MOVE[self.animCount // 15]
+                self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
+        elif self.last_move == 'left':
+            if self.isStunned:
+                self.image = LEFT_STUNNED[0]
+                self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
+            else:
+                self.image = LEFT_MOVE[0]
+                self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
+        elif self.last_move == 'right':
+            if self.isStunned:
+                self.image = RIGHT_STUNNED[0]
+                self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
+            else:
+                self.image = RIGHT_MOVE[0]
+                self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
 
 
 # Слизень
@@ -545,6 +546,7 @@ class Slime(pygame.sprite.Sprite):
         self.isJump = False
         self.isFalling = False
         self.jumpCount = 15
+        self.jumpMult = 16
 
         self.health = 1
         self.dieCount = 0
@@ -553,16 +555,8 @@ class Slime(pygame.sprite.Sprite):
     def kick(self):
         if self.rect.x > player.rect.x and player.last_move == 'right' and player.slashing:
             self.health -= 1
-            if self.left:
-                self.image = SLIME_LEFT[-1]
-            else:
-                self.image = SLIME_RIGHT[-1]
         elif self.rect.x < player.rect.x and player.last_move == 'left' and player.slashing:
             self.health -= 1
-            if self.left:
-                self.image = SLIME_LEFT[-1]
-            else:
-                self.image = SLIME_RIGHT[-1]
         elif not player.isStunned and self.health > 0:
             player.stun()
             player.health -= 1
@@ -609,40 +603,6 @@ class Slime(pygame.sprite.Sprite):
                         self.left = True
                 self.rect.x -= 1
 
-    # Прыжок
-    def jump(self):
-        if self.jumpCount >= 0:
-            self.rect.y -= self.jumpCount ** 2 // 16
-            self.move()
-            if pygame.sprite.spritecollideany(self, tiles_group):
-                self.rect.y += self.jumpCount ** 2 // 16
-                while not pygame.sprite.spritecollideany(self, tiles_group):
-                    self.rect.y -= 1
-                    if pygame.sprite.spritecollideany(self, tiles_group):
-                        self.isJump = False
-                        self.jumpCount = 0
-                self.rect.y += 1
-            else:
-                self.jumpCount -= 1
-        else:
-            self.collide_test_bottom()
-
-    # Падение
-    def fall(self):
-        self.rect.y += self.jumpCount ** 2 // 16
-        self.move()
-        if pygame.sprite.spritecollideany(self, tiles_group):
-            self.rect.y -= self.jumpCount ** 2 // 16
-            while not pygame.sprite.spritecollideany(self, tiles_group):
-                self.rect.y += 1
-                if pygame.sprite.spritecollideany(self, tiles_group):
-                    self.isFalling = False
-                    self.speed = 7
-                    self.jumpCount = 15
-            self.rect.y -= 1
-        else:
-            self.jumpCount -= 1
-
     # Проверка на столкновение с уровнем
     def collide_test_bottom(self):
         self.rect.y += 1
@@ -659,6 +619,40 @@ class Slime(pygame.sprite.Sprite):
             self.speed = 7
             self.jumpCount = 15
 
+    # Прыжок
+    def jump(self):
+        if self.jumpCount >= 0:
+            self.rect.y -= self.jumpCount ** 2 // self.jumpMult
+            self.move()
+            if pygame.sprite.spritecollideany(self, tiles_group):
+                self.rect.y += self.jumpCount ** 2 // self.jumpMult
+                while not pygame.sprite.spritecollideany(self, tiles_group):
+                    self.rect.y -= 1
+                    if pygame.sprite.spritecollideany(self, tiles_group):
+                        self.isJump = False
+                        self.jumpCount = 0
+                self.rect.y += 1
+            else:
+                self.jumpCount -= 1
+        else:
+            self.collide_test_bottom()
+
+    # Падение
+    def fall(self):
+        self.rect.y += self.jumpCount ** 2 // self.jumpMult
+        self.move()
+        if pygame.sprite.spritecollideany(self, tiles_group):
+            self.rect.y -= self.jumpCount ** 2 // self.jumpMult
+            while not pygame.sprite.spritecollideany(self, tiles_group):
+                self.rect.y += 1
+                if pygame.sprite.spritecollideany(self, tiles_group):
+                    self.isFalling = False
+                    self.speed = 7
+                    self.jumpCount = 15
+            self.rect.y -= 1
+        else:
+            self.jumpCount -= 1
+
     # Функция обновления
     def update(self):
         if self.rect.y >= total_level_height:
@@ -666,13 +660,11 @@ class Slime(pygame.sprite.Sprite):
         if pygame.sprite.spritecollideany(self, player_group):
             self.kick()
         if self.health <= 0:
+            if not self.dieCount:
+                SOUNDS['squish'].play()
             self.die()
         else:
             if self.standCount < 60 and not self.isJump and not self.isFalling:
-                if self.left:
-                    self.image = SLIME_LEFT[self.standCount // 20]
-                else:
-                    self.image = SLIME_RIGHT[self.standCount // 20]
                 self.standCount += 1
             else:
                 self.standCount = 0
@@ -683,6 +675,19 @@ class Slime(pygame.sprite.Sprite):
                 self.fall()
             if not self.isJump and not self.isFalling:
                 self.collide_test_bottom()
+        self.anim_update()
+
+    def anim_update(self):
+        if self.dieCount:
+            if self.left:
+                self.image = SLIME_LEFT[-1]
+            else:
+                self.image = SLIME_RIGHT[-1]
+        elif self.standCount < 60 and not self.isJump and not self.isFalling:
+            if self.left:
+                self.image = SLIME_LEFT[self.standCount // 20]
+            else:
+                self.image = SLIME_RIGHT[self.standCount // 20]
 
 
 # Летающий моб
@@ -707,16 +712,8 @@ class Fly(pygame.sprite.Sprite):
     def kick(self):
         if self.rect.x > player.rect.x and player.last_move == 'right' and player.slashing:
             self.health -= 1
-            if self.left:
-                self.image = FLY_LEFT[-1]
-            else:
-                self.image = FLY_RIGHT[-1]
         elif self.rect.x < player.rect.x and player.last_move == 'left' and player.slashing:
             self.health -= 1
-            if self.left:
-                self.image = FLY_LEFT[-1]
-            else:
-                self.image = FLY_RIGHT[-1]
         elif not player.isStunned and not self.dieCount:
             player.stun()
             player.health -= 1
@@ -728,16 +725,8 @@ class Fly(pygame.sprite.Sprite):
             all_sprites.remove(self)
         elif self.dieCount == 0:
             SOUNDS['dead_fly'].play()
-            if self.left:
-                self.image = FLY_LEFT[-1]
-            else:
-                self.image = FLY_RIGHT[-1]
             self.dieCount += 1
         else:
-            if self.left:
-                self.image = FLY_LEFT[-1]
-            else:
-                self.image = FLY_RIGHT[-1]
             self.dieCount += 1
 
     # Передвижение
@@ -766,7 +755,6 @@ class Fly(pygame.sprite.Sprite):
     # Падение
     def fall(self):
         self.rect.y += self.jumpCount ** 2 // 24
-        self.speed = 2
         self.move()
         if pygame.sprite.spritecollideany(self, tiles_group):
             self.rect.y -= self.jumpCount ** 2 // 24
@@ -809,7 +797,6 @@ class Fly(pygame.sprite.Sprite):
 
     # Функция обновления
     def update(self):
-        self.speed = 4
         self.collide_test_x()
         if pygame.sprite.spritecollideany(self, player_group):
             self.kick()
@@ -817,10 +804,6 @@ class Fly(pygame.sprite.Sprite):
             self.die()
         else:
             if self.animCount < 60:
-                if self.left:
-                    self.image = FLY_LEFT[self.animCount // 10]
-                else:
-                    self.image = FLY_RIGHT[self.animCount // 10]
                 self.move()
                 self.animCount += 1
             else:
@@ -829,6 +812,19 @@ class Fly(pygame.sprite.Sprite):
                 self.fall()
             if not self.isFalling:
                 self.collide_test_bottom()
+        self.anim_update()
+
+    def anim_update(self):
+        if self.dieCount:
+            if self.left:
+                self.image = FLY_LEFT[-1]
+            else:
+                self.image = FLY_RIGHT[-1]
+        elif self.animCount < 60:
+            if self.left:
+                self.image = FLY_LEFT[self.animCount // 10]
+            else:
+                self.image = FLY_RIGHT[self.animCount // 10]
 
 
 # Скелет-воин
@@ -861,7 +857,6 @@ class SkeletonWarrior(pygame.sprite.Sprite):
     def move(self):
         if self.animCount < 60:
             if self.left:
-                self.image = SKELETON_LEFT[self.animCount // 15]
                 self.rect.x -= self.speed
                 if pygame.sprite.spritecollideany(self, tiles_group):
                     self.rect.x += self.speed
@@ -872,7 +867,6 @@ class SkeletonWarrior(pygame.sprite.Sprite):
                             self.left = False
                     self.rect.x += 1
             else:
-                self.image = SKELETON_RIGHT[self.animCount // 15]
                 self.rect.x += self.speed
                 if pygame.sprite.spritecollideany(self, tiles_group):
                     self.rect.x -= self.speed
@@ -898,16 +892,8 @@ class SkeletonWarrior(pygame.sprite.Sprite):
         elif self.stunCount == 0:
             self.speed = 0
             self.isStunned = True
-            if self.left:
-                self.image = SKELETON_LEFT[-1]
-            else:
-                self.image = SKELETON_RIGHT[-1]
             self.stunCount += 1
         else:
-            if self.left:
-                self.image = SKELETON_LEFT[-1]
-            else:
-                self.image = SKELETON_RIGHT[-1]
             self.stunCount += 1
 
     # Столкновение с персонажем
@@ -933,16 +919,8 @@ class SkeletonWarrior(pygame.sprite.Sprite):
             all_sprites.remove(self)
         elif self.dieCount == 0:
             SOUNDS['skeleton_dead'].play()
-            if self.left:
-                self.image = SKELETON_DIE
-            else:
-                self.image = SKELETON_DIE
             self.dieCount += 1
         else:
-            if self.left:
-                self.image = SKELETON_DIE
-            else:
-                self.image = SKELETON_DIE
             self.dieCount += 1
 
     def slashing_test(self):
@@ -969,8 +947,6 @@ class SkeletonWarrior(pygame.sprite.Sprite):
             if self.attackCount // 30 == 1 and not self.isMoved:
                 self.rect.x -= 34
                 self.isMoved = not self.isMoved
-            self.image = SKELETON_ATTACK_LEFT[self.attackCount // 30]
-            self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
             self.slashing_test()
             self.attackCount += 1
         elif self.right:
@@ -978,8 +954,6 @@ class SkeletonWarrior(pygame.sprite.Sprite):
             if self.attackCount // 30 == 1 and not self.isMoved:
                 self.rect.x += 34
                 self.isMoved = not self.isMoved
-            self.image = SKELETON_ATTACK_RIGHT[self.attackCount // 30]
-            self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
             self.slashing_test()
             self.attackCount += 1
 
@@ -1066,6 +1040,31 @@ class SkeletonWarrior(pygame.sprite.Sprite):
                 self.kick()
             if self.health <= 0:
                 self.die()
+        self.anim_update()
+
+    def anim_update(self):
+        if self.dieCount:
+            if self.left:
+                self.image = SKELETON_DIE
+            else:
+                self.image = SKELETON_DIE
+        elif self.stunCount:
+            if self.left:
+                self.image = SKELETON_LEFT[-1]
+            else:
+                self.image = SKELETON_RIGHT[-1]
+        elif self.isAttack:
+            if self.left:
+                self.image = SKELETON_ATTACK_LEFT[self.attackCount // 30]
+                self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
+            else:
+                self.image = SKELETON_ATTACK_RIGHT[self.attackCount // 30]
+                self.rect = self.image.get_rect().move(self.rect.x, self.rect.y)
+        else:
+            if self.left:
+                self.image = SKELETON_LEFT[self.animCount // 15]
+            else:
+                self.image = SKELETON_RIGHT[self.animCount // 15]
 
 
 # Плитка
@@ -1156,7 +1155,7 @@ camera = Camera(camera_func, total_level_width, total_level_height)
 # Загрузка и воспроизведение саундтрека
 pygame.mixer.music.load('data/music/main.wav')
 pygame.mixer.music.play(-1)
-pygame.mixer.music.set_volume(0.4)
+pygame.mixer.music.set_volume(0.1)
 
 # Игровой цикл
 running = True
