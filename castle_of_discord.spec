@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['castle_of_discord.py'],
-             pathex=['F:\\PyCharm\\MyGame'],
+             pathex=['F:\\PyCharm\\Castle-of-Discord'],
              binaries=[],
              datas=[],
              hiddenimports=[],
