@@ -15,6 +15,10 @@ clock = pygame.time.Clock()
 pygame.display.set_caption('Castle of Discord')
 pygame.mouse.set_visible(False)
 
+# mixer инициализация
+pygame.mixer.pre_init(44100, -16, 2, 512)
+pygame.mixer.set_num_channels(32)
+
 # Загрузка заднего фона
 bg = pygame.image.load('data/textures/bg.png')
 
@@ -105,10 +109,11 @@ def load_snd(name):
 # Загрузка звуков
 SOUNDS = {'move': load_snd('move'), 'jump': load_snd('jump'),
           'hurt': load_snd('hurt'), 'smash': load_snd('smash'),
-          'squish': load_snd('squish'), 'purchase': load_snd('purchase'),
+          'squish': load_snd('squish'),'purchase': load_snd('purchase'),
           'pre_dagger': load_snd('pre_dagger'), 'dagger': load_snd('dagger'),
           'dead_fly': load_snd('dead_fly'), 'skeleton_hit': load_snd('skeleton_hit'),
-          'skeleton_dead': load_snd('skeleton_dead'), 'coin': load_snd('coin')}
+          'skeleton_dead': load_snd('skeleton_dead'), 'coin': load_snd('coin'),
+          'slime_jump': load_snd('slime_jump')}
 
 
 # Функция загрузки уровня
@@ -240,6 +245,7 @@ def start_screen():
 
 # Экран завершения игры
 def end_screen():
+    pygame.mixer.music.pause()
     end = pygame.image.load('data/textures/end.png')
     press = pygame.image.load('data/textures/press_quit.png')
     while True:
@@ -389,7 +395,7 @@ class Player(pygame.sprite.Sprite):
     def move(self):
         if not self.isJump and not self.isFalling:
             SOUNDS['move'].play()
-            SOUNDS['move'].set_volume(0.1)
+            SOUNDS['move'].set_volume(0.05)
         if self.animCount + 1 >= 60:
             self.animCount = 0
         elif self.left:
@@ -502,17 +508,17 @@ class Player(pygame.sprite.Sprite):
                     self.image = RIGHT_MOVE[3]
         elif self.left:
             if self.isStunned:
-                self.image = LEFT_STUNNED[self.animCount // 15]
+                self.image = LEFT_STUNNED[self.animCount // 20 + 1]
                 self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
             else:
-                self.image = LEFT_MOVE[self.animCount // 15]
+                self.image = LEFT_MOVE[self.animCount // 20 + 1]
                 self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
         elif self.right:
             if self.isStunned:
-                self.image = RIGHT_STUNNED[self.animCount // 15]
+                self.image = RIGHT_STUNNED[self.animCount // 20 + 1]
                 self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
             else:
-                self.image = RIGHT_MOVE[self.animCount // 15]
+                self.image = RIGHT_MOVE[self.animCount // 20 + 1]
                 self.rect = RIGHT_MOVE[3].get_rect().move(self.rect.x, self.rect.y)
         elif self.last_move == 'left':
             if self.isStunned:
@@ -622,6 +628,8 @@ class Slime(pygame.sprite.Sprite):
     # Прыжок
     def jump(self):
         if self.jumpCount >= 0:
+            if self.jumpCount == 15:
+                SOUNDS['slime_jump'].play()
             self.rect.y -= self.jumpCount ** 2 // self.jumpMult
             self.move()
             if pygame.sprite.spritecollideany(self, tiles_group):
@@ -934,6 +942,7 @@ class SkeletonWarrior(pygame.sprite.Sprite):
         if self.attackCount + 1 >= 60:
             self.isAttack = False
             self.slashing = False
+            SOUNDS['dagger'].play()
             if self.isMoved:
                 if self.left:
                     self.rect.x += 34
@@ -943,6 +952,8 @@ class SkeletonWarrior(pygame.sprite.Sprite):
             self.speed = 2
             self.attackCount = 0
         elif self.left:
+            if not self.attackCount:
+                SOUNDS['pre_dagger'].play()
             self.speed = 0
             if self.attackCount // 30 == 1 and not self.isMoved:
                 self.rect.x -= 34
@@ -950,6 +961,8 @@ class SkeletonWarrior(pygame.sprite.Sprite):
             self.slashing_test()
             self.attackCount += 1
         elif self.right:
+            if not self.attackCount:
+                SOUNDS['pre_dagger'].play()
             self.speed = 0
             if self.attackCount // 30 == 1 and not self.isMoved:
                 self.rect.x += 34
@@ -1093,7 +1106,8 @@ class Food(pygame.sprite.Sprite):
     # Повышает уровень здоровья на 1 единицу, если здоровье персонажа меньше 5 единиц
     def update(self):
         if pygame.sprite.spritecollideany(self, player_group) and player.health < 5:
-            SOUNDS['squish'].play()
+            SOUNDS['purchase'].play()
+            SOUNDS['purchase'].set_volume(0.8)
             player.health += 1
             entity_group.remove(self)
             all_sprites.remove(self)
@@ -1155,7 +1169,7 @@ camera = Camera(camera_func, total_level_width, total_level_height)
 # Загрузка и воспроизведение саундтрека
 pygame.mixer.music.load('data/music/main.wav')
 pygame.mixer.music.play(-1)
-pygame.mixer.music.set_volume(0.1)
+pygame.mixer.music.set_volume(0.2)
 
 # Игровой цикл
 running = True
